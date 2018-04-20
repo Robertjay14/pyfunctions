@@ -1,0 +1,86 @@
+import urllib.request
+import io
+
+
+def pdbParser(stream):
+    line = stream.readline()
+    all_atoms = []
+    while line:
+        if line.startswith('ATOM  ') or line.startswith('HETATM'):
+            atom = {
+                'index' : int(line[6:11]),
+                'name' : line[12:16].strip(),
+                'resname' : line[17:20].strip(),
+                'resid' : int(line[22:26]),
+                'chain' :line[21],
+                'x' : float(line[30:38]),
+                'y' : float(line[38:46]),
+                'z' : float(line[46:54]),
+                }
+            all_atoms.append(atom)
+        line = stream.readline()
+    return all_atoms
+
+
+# Function readPDB reads atoms (sections ATOM and HETATM
+# from a PDB file and returns a list of atoms. Each atom
+# is a dictionary or namedtuple
+#
+# Input: file name (str)
+# Output: list of dictionaries or named tuples
+def readPDB(filename):
+    pdb_file = open(filename)
+    all_atoms = pdbParser(pdb_file)
+    pdb_file.close()
+    return all_atoms
+
+
+# Function dowloadPDB uses urllib.request to download
+# a PDB file from PDB database and returns a list of atoms.
+# Each atom is a dictionary or namedtuple
+#
+# Input: PDBID (str)
+# Output: list of dictionaries or named tuples
+def downloadPDB(code):
+    url = "https://files.rcsb.org/download/%s.pdb" % code
+    remote = urllib.request.urlopen(url)
+    if remote.status != 200:
+        raise RuntimeError("Resource %s unavailable" % url)
+    data = io.TextIOWrapper(remote, 'ASCII')
+    all_atoms = pdbParser(data)
+    remote.close()
+    return all_atoms
+
+
+# Input: file name (str)
+#        list of dictionaries or named tuples
+# Output: none
+def writePDB(filename, atoms):
+    line_format = "ATOM  {index:5}{name:>4} {resname:3} {chain:1}"
+    line_format += "{resid:3}    {x:8.3f}{y:8.3f}{z:8.3f}\n" 
+    pdb = open(filename, 'w') #opens the file
+    for atom in atoms:
+        pdb.write(line_format.format(**atom)) #saves atoms to the file **atom is dictionary
+    pdb.write('END\n') #adds END at end
+    pdb.close()
+
+# Generator
+# Input: list of dictionaries or named tuples
+# Output: dictionary or named tuple
+#field is key in dictionary 
+#generator function saves to file just the atoms we select
+def filterAtoms(listofatoms, field, value):
+	for atom in listofatoms:
+	  if atom[field] == value:
+	      yield atom
+	return 
+
+
+if __name__ == '__main__':
+    from pprint import pprint
+    mol = readPDB('1PEF.pdb')
+    selection = filterAtoms(mol, 'name', 'CA') #selects atoms only with CA in name
+    #selection = filter(lambda a: a['name'] == 'CA', mol)
+    #the same thing but with python filter function
+    writePDB('foo.pdb', selection)
+
