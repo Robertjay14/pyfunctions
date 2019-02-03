@@ -1,0 +1,53 @@
+import numpy as np
+from itertools import product, combinations
+from collections import Counter
+atom = 10
+org = np.random.randint(51,size=(atom,3))
+with open('output2.xyz','ab') as dat:
+    np.savetxt(dat, org, fmt='%d',newline='\nH ', header='10\nOrg', comments='')   
+bond = np.asarray(list(product([0,9,-9,13,-13,23,-23,27,-27,41,-41,49,-49], repeat=3)))
+first = 0
+steps = 500
+while first < steps - 1: 
+    first += 1
+    data = {}
+    for a,b in combinations(org, 2):
+        if np.all(np.in1d(a-b, bond)) == True: 
+            lista=[]
+            aa = (np.argwhere(org == a))         
+            for i in aa:
+                lista.append(i[0])
+                lista.append(i[0])
+            arraya = [a for a,b in Counter(lista).items() if b > 2] 
+            coord = np.random.randint(low=-1,high=3, size=(1,3))
+            for x in arraya:
+                data.update( {x : coord } )
+            listb = []
+            bb = (np.argwhere(org == b))         
+            for j in bb:
+                listb.append(j[0])
+            arrayb = [a for a,b in Counter(listb).items() if b > 2] 
+            for x in arrayb:
+                data.update( {x : coord } )
+
+    listc = []
+    for k in data:
+        listc.append(k)    
+    for l in range(atom):
+        if l not in listc:
+            coord2 = np.random.randint(low=-1,high=3, size=(1,3))
+            data.update( {l : coord2 } )
+    step = np.empty(shape=(0,3), dtype=int)      
+    for key, value in data.items():
+        step = np.append(step,np.array(value), axis=0)
+
+    box = [0,50]
+    org += step
+    for m in np.nditer(org, op_flags=['readwrite']):
+        if m > box[1]:
+                m[...] = box[0]+1
+        if m < box[0]:
+                m[...] = box[1]-1            
+    with open('output2.xyz','ab') as dat:
+        np.savetxt(dat, org, fmt='%d',newline='\nH ', header='10\nAtom', comments='')            
+ 
